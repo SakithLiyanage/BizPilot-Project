@@ -1,0 +1,126 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Business {
+  id             String     @id @default(uuid())
+  name           String
+  industryType   String
+  phone          String
+  whatsappNumber String     @unique
+  address        String?
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+  users          User[]
+  products       Product[]
+  orders         Order[]
+  customers      Customer[]
+}
+
+model User {
+  id           String    @id @default(uuid())
+  businessId   String
+  name         String
+  email        String    @unique
+  passwordHash String
+  role         Role      @default(EMPLOYEE)
+  createdAt    DateTime  @default(now())
+
+  business     Business  @relation(fields: [businessId], references: [id])
+}
+
+enum Role {
+  OWNER
+  EMPLOYEE
+  ADMIN
+}
+
+model Customer {
+  id                 String    @id @default(uuid())
+  businessId         String
+  name               String
+  whatsappNumber     String
+  loyaltyPoints      Int       @default(0)
+  languagePreference String    @default("en")
+  createdAt          DateTime  @default(now())
+
+  business           Business  @relation(fields: [businessId], references: [id])
+  orders             Order[]
+
+  @@unique([businessId, whatsappNumber])
+}
+
+model Product {
+  id            String    @id @default(uuid())
+  businessId    String
+  sku           String
+  name          String
+  category      String
+  description   String?
+  costPrice     Float
+  sellingPrice  Float
+  stockQuantity Int       @default(0)
+  images        String[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  business      Business  @relation(fields: [businessId], references: [id])
+  orderItems    OrderItem[]
+
+  @@unique([businessId, sku])
+}
+
+model Order {
+  id          String      @id @default(uuid())
+  businessId  String
+  customerId  String
+  status      OrderStatus @default(NEW)
+  totalAmount Float
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  business    Business    @relation(fields: [businessId], references: [id])
+  customer    Customer    @relation(fields: [customerId], references: [id])
+  items       OrderItem[]
+  documents   Document[]
+}
+
+enum OrderStatus {
+  NEW
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
+model OrderItem {
+  id        String   @id @default(uuid())
+  orderId   String
+  productId String
+  quantity  Int
+  price     Float
+
+  order     Order    @relation(fields: [orderId], references: [id])
+  product   Product  @relation(fields: [productId], references: [id])
+}
+
+model Document {
+  id        String       @id @default(uuid())
+  orderId   String
+  type      DocumentType
+  url       String
+  createdAt DateTime     @default(now())
+
+  order     Order        @relation(fields: [orderId], references: [id])
+}
+
+enum DocumentType {
+  QUOTATION
+  INVOICE
+  RECEIPT
+}
