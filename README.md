@@ -127,5 +127,4 @@ bizpilot-ai/
 └── package.json        # Root monorepo configuration
 ```
 
----
-*Built with ❤️ by BizPilot AI*
+
