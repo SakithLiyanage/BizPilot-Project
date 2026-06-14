@@ -3,7 +3,12 @@ import { prisma } from '../utils/prisma';
 
 export const getInventory = async (req: Request, res: Response) => {
   try {
-    const products = await prisma.product.findMany();
+    const user = (req as any).user;
+    if (!user) return res.status(401).json({ error: 'Unauthorized' });
+
+    const products = await prisma.product.findMany({
+      where: { businessId: user.businessId }
+    });
     res.json(products);
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch inventory' });
@@ -12,9 +17,11 @@ export const getInventory = async (req: Request, res: Response) => {
 
 export const createProduct = async (req: Request, res: Response) => {
   try {
-    const { name, sku, category, costPrice, sellingPrice, stockQuantity, businessId } = req.body;
+    const user = (req as any).user;
+    if (!user) return res.status(401).json({ error: 'Unauthorized' });
+
+    const { name, sku, category, costPrice, sellingPrice, stockQuantity } = req.body;
     
-    // In a real app businessId is from authenticated user session
     const product = await prisma.product.create({
       data: {
         name,
@@ -23,7 +30,7 @@ export const createProduct = async (req: Request, res: Response) => {
         costPrice,
         sellingPrice,
         stockQuantity,
-        businessId
+        businessId: user.businessId
       }
     });
     
@@ -35,11 +42,12 @@ export const createProduct = async (req: Request, res: Response) => {
 
 export const updateProduct = async (req: Request, res: Response) => {
   try {
+    const user = (req as any).user;
     const id = req.params.id as string;
     const { name, sku, category, costPrice, sellingPrice, stockQuantity } = req.body;
     
-    const product = await prisma.product.update({
-      where: { id },
+    const product = await prisma.product.updateMany({
+      where: { id, businessId: user.businessId },
       data: { name, sku, category, costPrice, sellingPrice, stockQuantity }
     });
     
@@ -51,10 +59,11 @@ export const updateProduct = async (req: Request, res: Response) => {
 
 export const deleteProduct = async (req: Request, res: Response) => {
   try {
+    const user = (req as any).user;
     const id = req.params.id as string;
     
-    await prisma.product.delete({
-      where: { id }
+    await prisma.product.deleteMany({
+      where: { id, businessId: user.businessId }
     });
     
     res.json({ success: true });
